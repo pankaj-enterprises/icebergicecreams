@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>(function(){ emailjs.init("dR7szNsRur2vopJXq"); })();</script>
+</head>
+<body>
+    <div id="authOverlay" class="modal" style="display:flex;">
+        <div class="modal-content" style="text-align:center;">
+            <h3>Admin Security</h3>
+            <div id="loginStep1">
+                <input id="adminEmail" placeholder="Admin Email">
+                <button id="verifyAdminEmail" class="btn">Verify</button>
+            </div>
+            <div id="loginStep2" style="display:none;">
+                <input id="adminOtp" placeholder="OTP">
+                <button id="adminLoginBtn" class="btn">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+        <div class="navbar"><div class="logo">Admin</div></div>
+        
+        <div class="admin-tabs">
+            <button onclick="tab('dash')" class="active">Dashboard</button>
+            <button onclick="tab('orders')">Orders</button>
+            <button onclick="tab('products')">Products</button>
+            <button onclick="tab('cats')">Categories</button>
+            <button onclick="tab('slider')">Slider</button>
+            <button onclick="tab('settings')">Settings</button>
+        </div>
+
+        <div id="dash" class="tab-content active">
+            <h2>Dashboard</h2>
+            <p>Welcome Admin.</p>
+        </div>
+
+        <div id="orders" class="tab-content">
+            <h2>Orders</h2>
+            <div id="orderList"></div>
+        </div>
+
+        <div id="products" class="tab-content">
+            <h2>Add Product</h2>
+            <input id="pName" placeholder="Name">
+            <input id="pPrice" type="number" placeholder="Price">
+            <input id="pImg" placeholder="Image URL">
+            <select id="pCat"></select>
+            <textarea id="pDesc" placeholder="Description"></textarea>
+            <button id="addProd" class="btn">Add Product</button>
+        </div>
+
+        <div id="cats" class="tab-content">
+            <h2>Add Category</h2>
+            <input id="cName" placeholder="Name">
+            <input id="cImg" placeholder="Image URL">
+            <button id="addCat" class="btn">Add</button>
+        </div>
+
+        <div id="slider" class="tab-content">
+            <h2>Add Slide</h2>
+            <input id="sImg" placeholder="Image URL">
+            <input id="sLink" placeholder="Link (Optional)">
+            <button id="addSlide" class="btn">Add Slide</button>
+        </div>
+
+        <div id="settings" class="tab-content">
+            <h2>Site Settings</h2>
+            <input id="logoUrl" placeholder="Logo Image URL">
+            <button id="saveLogo" class="btn">Update Logo</button>
+        </div>
+    </div>
+
+    <div id="shipModal" class="modal">
+        <div class="modal-content">
+            <h3>Shipping Info</h3>
+            <input id="dPartner" placeholder="Delivery Partner">
+            <input id="dTrack" placeholder="Tracking ID">
+            <button id="confirmShip" class="btn">Confirm</button>
+            <button onclick="document.getElementById('shipModal').style.display='none'" class="btn" style="background:red;">Close</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { setupAdminLogin } from './auth.js';
+        import { db } from './firebase.js';
+        import { collection, addDoc, getDocs, updateDoc, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        setupAdminLogin();
+
+        window.tab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(id === 'orders') loadOrders();
+            if(id === 'products') loadCats();
+        };
+
+        // Orders
+        async function loadOrders() {
+            const div = document.getElementById('orderList');
+            div.innerHTML = "Loading...";
+            const snap = await getDocs(collection(db, "orders"));
+            div.innerHTML = "";
+            snap.forEach(d => {
+                const o = d.data();
+                div.innerHTML += `
+                    <div class="card" style="padding:10px; margin-bottom:10px;">
+                        <b>ID:</b> ${d.id}<br>
+                        <b>Status:</b> ${o.status}<br>
+                        <b>Items:</b> ${o.items.map(i=>i.productName).join(', ')}<br>
+                        <button onclick="upd('${d.id}', 'Confirmed')">Confirm</button>
+                        <button onclick="shipp('${d.id}')">Ship</button>
+                        <button onclick="upd('${d.id}', 'Delivered')">Deliver</button>
+                        <button onclick="upd('${d.id}', 'Cancelled')">Cancel</button>
+                    </div>`;
+            });
+        }
+
+        window.upd = async (id, st) => { await updateDoc(doc(db, "orders", id), { status: st }); loadOrders(); };
+        
+        let shipId = null;
+        window.shipp = (id) => { shipId = id; document.getElementById('shipModal').style.display='flex'; };
+        
+        document.getElementById('confirmShip').onclick = async () => {
+            await updateDoc(doc(db, "orders", shipId), {
+                status: "Shipped",
+                deliveryPartner: document.getElementById('dPartner').value,
+                trackingId: document.getElementById('dTrack').value
+            });
+            document.getElementById('shipModal').style.display='none';
+            loadOrders();
+        };
+
+        // Add Data Logic
+        async function loadCats() {
+            const sel = document.getElementById('pCat');
+            sel.innerHTML = "";
+            const snap = await getDocs(collection(db, "categories"));
+            snap.forEach(d => sel.innerHTML += `<option>${d.data().categoryName}</option>`);
+        }
+
+        document.getElementById('addProd').onclick = async () => {
+            await addDoc(collection(db, "products"), {
+                productName: document.getElementById('pName').value,
+                productPrice: Number(document.getElementById('pPrice').value),
+                productImageURL: document.getElementById('pImg').value,
+                productCategory: document.getElementById('pCat').value,
+                productDescription: document.getElementById('pDesc').value
+            });
+            alert("Product Added");
+        };
+
+        document.getElementById('addCat').onclick = async () => {
+            await addDoc(collection(db, "categories"), {
+                categoryName: document.getElementById('cName').value,
+                categoryImageURL: document.getElementById('cImg').value
+            });
+            alert("Category Added");
+        };
+
+        document.getElementById('addSlide').onclick = async () => {
+            await addDoc(collection(db, "slider"), {
+                image: document.getElementById('sImg').value,
+                link: document.getElementById('sLink').value
+            });
+            alert("Slide Added");
+        };
+
+        document.getElementById('saveLogo').onclick = async () => {
+            await setDoc(doc(db, "site_settings", "logo"), {
+                url: document.getElementById('logoUrl').value
+            });
+            alert("Logo Updated");
+        };
+    </script>
+</body>
+</html>

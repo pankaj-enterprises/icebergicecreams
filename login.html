@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>(function(){ emailjs.init("dR7szNsRur2vopJXq"); })();</script>
+</head>
+<body>
+    <div class="container" style="text-align:center; margin-top:50px;">
+        <h2>Login / Signup</h2>
+        <div class="card" style="padding:20px;">
+            <div id="step1">
+                <input id="userEmail" placeholder="Enter Email">
+                <button id="getOtpBtn" class="btn">Get OTP</button>
+            </div>
+            <div id="step2" style="display:none;">
+                <input id="userOtp" placeholder="Enter OTP">
+                <button id="verifyOtpBtn" class="btn">Verify</button>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+        import { setupUserLogin } from './auth.js';
+        setupUserLogin();
+    </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICEBERG</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">ICEBERG</a>
+        <div class="nav-icons">
+            <i class="fas fa-search" id="searchIcon"></i>
+            <a href="cart.html"><i class="fas fa-shopping-cart"></i></a>
+            <div class="hamburger" id="hamburger"><div></div><div></div><div></div></div>
+        </div>
+    </nav>
+
+    <div class="search-container" id="searchBar">
+        <input type="text" id="searchInput" placeholder="Search ice creams...">
+    </div>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <span id="navUserEmail" style="color:#888; display:block; padding:10px;">Guest</span>
+        <a href="index.html">Home</a>
+        <a href="orders.html">My Orders</a>
+        <a href="login.html">Login/Signup</a>
+        <a href="admin.html">Admin</a>
+    </div>
+
+    <div id="slider" style="width:100%; overflow:hidden;"></div>
+
+    <div class="container">
+        <h2 id="pageTitle">Categories</h2>
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import './main.js';
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const sliderDiv = document.getElementById('slider');
+        const grid = document.getElementById('grid');
+        const params = new URLSearchParams(window.location.search);
+        const search = params.get('search');
+
+        // Load Slider
+        getDocs(collection(db, "slider")).then(snap => {
+            snap.forEach(d => {
+                const img = document.createElement('img');
+                img.src = d.data().image;
+                img.style.width = "100%";
+                if(d.data().link) img.onclick = () => window.location.href = d.data().link;
+                sliderDiv.appendChild(img);
+            });
+        });
+
+        // Load Logic (Search vs Categories)
+        if(search) {
+            document.getElementById('pageTitle').innerText = "Search Results";
+            sliderDiv.style.display = 'none';
+            getDocs(collection(db, "products")).then(snap => {
+                snap.forEach(d => {
+                    const p = d.data();
+                    if(p.productName.toLowerCase().includes(search.toLowerCase())) {
+                        grid.innerHTML += `<div class="card" onclick="window.location.href='product.html?id=${d.id}'">
+                            <img src="${p.productImageURL}">
+                            <div class="card-body"><b>${p.productName}</b><br>₹${p.productPrice}</div>
+                        </div>`;
+                    }
+                });
+            });
+        } else {
+            getDocs(collection(db, "categories")).then(snap => {
+                snap.forEach(d => {
+                    grid.innerHTML += `<div class="card" onclick="window.location.href='category.html?cat=${d.data().categoryName}'">
+                        <img src="${d.data().categoryImageURL}">
+                        <div class="card-body"><h3>${d.data().categoryName}</h3></div>
+                    </div>`;
+                });
+            });
+        }
+    </script>
+</body>
+</html>

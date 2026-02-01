@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar"><a href="index.html" class="logo">ICEBERG</a></nav>
+    <div class="container">
+        <div id="product" class="product-detail">Loading...</div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { doc, getDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const pid = new URLSearchParams(window.location.search).get('id');
+        let productData = null;
+        let qty = 1;
+
+        getDoc(doc(db, "products", pid)).then(snap => {
+            if(snap.exists()) {
+                productData = snap.data();
+                render();
+            }
+        });
+
+        function render() {
+            document.getElementById('product').innerHTML = `
+                <img src="${productData.productImageURL}">
+                <h2>${productData.productName}</h2>
+                <h3 style="color:#cca43b">₹${productData.productPrice}</h3>
+                <p>${productData.productDescription}</p>
+                <div style="margin:20px 0;">
+                    <button onclick="changeQty(-1)" style="padding:5px 10px;">-</button>
+                    <span id="qtyDisplay" style="margin:0 10px;">1</span>
+                    <button onclick="changeQty(1)" style="padding:5px 10px;">+</button>
+                </div>
+                <button id="addBtn" class="btn">Add to Cart</button>
+            `;
+            
+            // Re-attach listeners because innerHTML wipes them
+            window.changeQty = (n) => {
+                if(qty + n > 0) { qty += n; document.getElementById('qtyDisplay').innerText = qty; }
+            };
+
+            document.getElementById('addBtn').onclick = async () => {
+                const user = localStorage.getItem('user_email');
+                if(!user) return window.location.href = "login.html";
+                
+                await addDoc(collection(db, "cart"), {
+                    userId: user,
+                    productId: pid,
+                    productName: productData.productName,
+                    price: productData.productPrice,
+                    qty: qty
+                });
+                alert("Added to Cart");
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">ICEBERG</a>
+        <div class="nav-icons">
+             <a href="cart.html"><i class="fas fa-shopping-cart"></i></a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 id="catName" style="border-bottom: 2px solid #cca43b; display:inline-block; margin-bottom: 20px;">Loading...</h2>
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // 1. Get the category name from the URL (e.g. category.html?cat=Scoops)
+        const params = new URLSearchParams(window.location.search);
+        const cat = params.get('cat');
+
+        // 2. Set the Title
+        if(!cat) {
+            document.getElementById('catName').innerText = "Category not found";
+        } else {
+            document.getElementById('catName').innerText = cat;
+            loadProducts(cat);
+        }
+
+        // 3. Fetch products from Firebase
+        async function loadProducts(categoryName) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = "Loading products...";
+            
+            const q = query(collection(db, "products"), where("productCategory", "==", categoryName));
+            const snap = await getDocs(q);
+            
+            grid.innerHTML = ""; // Clear loading text
+            
+            if(snap.empty) {
+                grid.innerHTML = "<p>No ice creams found in this category yet.</p>";
+                return;
+            }
+
+            snap.forEach(d => {
+                const p = d.data();
+                grid.innerHTML += `
+                    <div class="card" onclick="window.location.href='product.html?id=${d.id}'">
+                        <img src="${p.productImageURL}" style="width:100%; height:150px; object-fit:cover;">
+                        <div class="card-body" style="padding:10px;">
+                            <b>${p.productName}</b><br>
+                            <span style="color:#cca43b; font-weight:bold;">₹${p.productPrice}</span>
+                        </div>
+                    </div>`;
+            });
+        }
+    </script>
+</body>
+</html>

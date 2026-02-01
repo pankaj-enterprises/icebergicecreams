@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Checkout</h2>
+        <form id="checkoutForm">
+            <input id="name" placeholder="Full Name" required>
+            <input id="phone" placeholder="Phone Number" required>
+            <input id="email" placeholder="Email (Optional)">
+            <input id="street" placeholder="Street / Village" required>
+            <input id="city" placeholder="City" required>
+            <input id="state" placeholder="State" required>
+            <input id="pincode" placeholder="Pincode" required>
+            <input id="country" value="India" required>
+            
+            <p style="color:red; font-size:12px;">Currently we are not accepting online payments. Please select COD.</p>
+            <label><input type="radio" checked> Cash on Delivery (COD)</label>
+            
+            <button type="submit" class="btn">Place Order</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const user = localStorage.getItem('user_email');
+
+        document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get Cart
+            const q = query(collection(db, "cart"), where("userId", "==", user));
+            const snap = await getDocs(q);
+            if(snap.empty) return alert("Cart is empty");
+
+            let items = [];
+            let total = 0;
+            snap.forEach(d => { items.push(d.data()); total += (d.data().price * d.data().qty); });
+
+            // Create Order
+            await addDoc(collection(db, "orders"), {
+                userId: user,
+                items: items,
+                total: total,
+                status: "Placed",
+                createdAt: new Date(),
+                payment: "COD",
+                address: {
+                    name: document.getElementById('name').value,
+                    phone: document.getElementById('phone').value,
+                    street: document.getElementById('street').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    pincode: document.getElementById('pincode').value,
+                    country: document.getElementById('country').value
+                }
+            });
+
+            // Clear Cart
+            snap.forEach(async (d) => await deleteDoc(d.ref));
+
+            // Green Tick Popup (Simplified as Alert for Acode, or use custom modal)
+            alert("Your order was successfully placed");
+            window.location.href = "orders.html";
+        });
+    </script>
+</body>
+</html>

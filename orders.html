@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="logo">My Orders</div><a href="index.html" style="color:white">Home</a></nav>
+    <div class="container" id="orderList"></div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const user = localStorage.getItem('user_email');
+        if(!user) window.location.href = "login.html";
+
+        const q = query(collection(db, "orders"), where("userId", "==", user));
+        getDocs(q).then(snap => {
+            const div = document.getElementById('orderList');
+            snap.forEach(d => {
+                const o = d.data();
+                let track = "";
+                if(o.status === "Shipped") {
+                    track = `<div style="background:#eef; padding:5px; margin-top:5px; border:1px dashed blue;">
+                        Partner: ${o.deliveryPartner} <br> Tracking ID: ${o.trackingId}
+                    </div>`;
+                }
+                div.innerHTML += `
+                    <div class="card" style="padding:15px; margin-bottom:15px;">
+                        <h3>Order #${d.id.slice(0,6)}</h3>
+                        <p>Status: <b>${o.status}</b></p>
+                        <p>${o.items.map(i => `${i.productName} (x${i.qty})`).join(', ')}</p>
+                        ${track}
+                    </div>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>

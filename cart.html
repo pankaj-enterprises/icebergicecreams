@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar"><div class="logo">Cart</div><a href="index.html" style="color:white">Home</a></nav>
+    <div class="container">
+        <div id="cartItems"></div>
+        <h3>Total: ₹<span id="total">0</span></h3>
+        <button onclick="window.location.href='checkout.html'" class="btn">Checkout</button>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, query, where, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const user = localStorage.getItem('user_email');
+        if(!user) window.location.href = "login.html";
+
+        async function loadCart() {
+            const q = query(collection(db, "cart"), where("userId", "==", user));
+            const snap = await getDocs(q);
+            let total = 0;
+            const div = document.getElementById('cartItems');
+            div.innerHTML = "";
+            
+            snap.forEach(d => {
+                const item = d.data();
+                total += (item.price * item.qty);
+                div.innerHTML += `
+                    <div class="card" style="padding:10px; display:flex; justify-content:space-between;">
+                        <div>
+                            <b>${item.productName}</b><br>
+                            ₹${item.price} x ${item.qty}
+                        </div>
+                        <div>
+                            <button onclick="del('${d.id}')" style="background:red; color:white; border:none; padding:5px;">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('total').innerText = total;
+        }
+
+        window.del = async(id) => { await deleteDoc(doc(db, "cart", id)); loadCart(); };
+        loadCart();
+    </script>
+</body>
+</html>
